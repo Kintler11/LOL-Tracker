@@ -1,7 +1,14 @@
-# Tauri + Svelte + Typescript
 
-This template should help get you started developing with Tauri, Svelte and TypeScript in Vite.
+# LOL Tracker
 
-## Recommended IDE Setup
+An app for having fun in league of legends. This app has all the components you need to have fun in league of legends. Written using Rust and TypeScript with the Tauri library and Svelte framework. 
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer).
+
+
+## Features
+
+- Champion Generation
+- Team randomization
+- Lane randomization
+- Live game tracking
+
