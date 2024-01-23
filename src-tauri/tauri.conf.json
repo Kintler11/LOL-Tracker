@@ -6,7 +6,7 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "ilta-app-graphic",
+    "productName": "LOL-Tracker",
     "version": "0.0.0"
   },
   "tauri": {
@@ -36,7 +36,7 @@
       {
         "fullscreen": false,
         "resizable": true,
-        "title": "ilta-app-graphic",
+        "title": "LOL-Tracker",
         "width": 1280,
         "height": 780
       }
