@@ -3,6 +3,20 @@
 version = 3
 
 [[package]]
+name = "LOL-Tracker"
+version = "0.0.0"
+dependencies = [
+ "lazy_static",
+ "rand 0.8.5",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tokio",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1696,20 +1710,6 @@ dependencies = [
  "same-file",
  "walkdir",
  "winapi-util",
-]
-
-[[package]]
-name = "ilta-app-graphic"
-version = "0.0.0"
-dependencies = [
- "lazy_static",
- "rand 0.8.5",
- "reqwest",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tokio",
 ]
 
 [[package]]

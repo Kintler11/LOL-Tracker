@@ -1,15 +1,13 @@
 [package]
-name = "ilta-app-graphic"
+name = "LOL-Tracker"
 version = "0.0.0"
-description = "A Tauri App"
+description = "An app to have fun in League Of Legends ( Possibly the only way :) )"
 authors = ["you"]
 license = ""
 repository = ""
 edition = "2021"
 
 [build]
-rustflags = ["-Z", "threads=16"]
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
