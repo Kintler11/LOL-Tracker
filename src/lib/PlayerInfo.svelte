@@ -37,12 +37,12 @@
         {/if}
         <div class="champion-thumbnail">
             <div class="champion-image">
-                <img src="https://ddragon.leagueoflegends.com/cdn/13.24.1/img/{player_data.champion.image}" alt="">
+                <img src="https://ddragon.leagueoflegends.com/cdn/14.2.1/img/{player_data.champion.image}" alt="">
             </div>
         </div>
         <div class="player-spells">
-            <img class="player-spell" src="https://ddragon.leagueoflegends.com/cdn/13.24.1/img/spell/{spell_lookup(player_data.summoner_one)}.png" alt="">
-            <img class="player-spell" src="https://ddragon.leagueoflegends.com/cdn/13.24.1/img/spell/{spell_lookup(player_data.summoner_two)}.png" alt="">
+            <img class="player-spell" src="https://ddragon.leagueoflegends.com/cdn/14.2.1/img/spell/{spell_lookup(player_data.summoner_one)}.png" alt="">
+            <img class="player-spell" src="https://ddragon.leagueoflegends.com/cdn/14.2.1/img/spell/{spell_lookup(player_data.summoner_two)}.png" alt="">
     
         </div>
         <div class="player-name">

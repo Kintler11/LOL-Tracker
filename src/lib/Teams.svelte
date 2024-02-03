@@ -19,8 +19,8 @@
     let teams = 0;
     let team_size = 5;
 
-    let team_1 = []
-    let team_2 = []
+    export let team_1 = []
+    export let team_2 = []
 
     function getRandomInt(max) {
         return Math.floor(Math.random() * max);

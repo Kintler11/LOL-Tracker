@@ -22,6 +22,8 @@
   let current_tab = 2;
 
   let players = []
+  let team_1 = [];
+  let team_2 = [];
   let player_list = ["Player 1", "Player 2", "Player 3", "Player 4"]
 
   let events = []
@@ -58,7 +60,7 @@
   {#if current_tab == 3}
     <LiveGame bind:players={players} bind:events={events} bind:event_buffer={event_buffer} />
   {:else if current_tab ==  2}
-    <Teams bind:players={player_list} />
+    <Teams bind:players={player_list} bind:team_1={team_1} bind:team_2={team_2} />
   {:else if current_tab ==  1}
     <Champion bind:current_champion={randomizer.current_champion} bind:current_lane={randomizer.current_lane} />
   {:else if current_tab ==  0}
