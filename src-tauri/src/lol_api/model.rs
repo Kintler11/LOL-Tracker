@@ -117,7 +117,7 @@ pub struct API_SETTINGS{
 }
 
 // Parsed Fields
-#[derive(Debug, PartialEq, PartialOrd, Clone, Serialize )]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Serialize)]
 pub struct Player{
     pub name: String,
     pub champion: Champion,

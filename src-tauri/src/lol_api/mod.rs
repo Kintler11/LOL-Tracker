@@ -6,7 +6,8 @@ use std::{
 use model::{*};
 use rand::seq::{SliceRandom, IteratorRandom};
 
-use reqwest::{Certificate};
+use reqwest::{header::RETRY_AFTER, Certificate};
+use tauri::Event;
 
 impl model::API {
     pub fn new() -> Self{
@@ -69,7 +70,7 @@ impl model::API {
             _ => {println!("Settings not found"); return;}
         };
 
-        self.settings = serde_json::from_reader(json_file).unwrap();
+        self.settings = serde_json::from_reader(json_file).expect("Unable to load settings");
     }
 
     #[tokio::main]
@@ -87,7 +88,7 @@ impl model::API {
         .await?;
 
         let versions:Vec<String> = response.json().await?;
-        
+
         Ok(versions.get(0).unwrap().to_string())
     }
 
@@ -153,28 +154,41 @@ impl model::API {
             Gametype::Arena => "./snapshots/arena.json",
             Gametype::ARAM => "./snapshots/aram.json",
             _ => "./snapshots/classic.json"
-        }.to_string();
+        };
         
-        let json_location = Path::new(data_location.as_str());
+        let json_location = Path::new(data_location);
 
         let json_file = match File::open(json_location) {
             Ok(file) => file,
-            _ => {println!("Snapshot not found"); return;}
+            _ => {
+                println!("Snapshot not found"); 
+                return;
+            }
         };
 
-        self.debug_data = Some(serde_json::from_reader(json_file).unwrap());
+        self.debug_data = match serde_json::from_reader(json_file) {
+            Ok(data) => Some(data),
+            _ => None
+        };
+
         self.debug_mode = true;
     }
     
     pub fn set_champions(&mut self){
         let champion_data = match self.get_champions() {
             Ok(data) => data,
-            Err(_) => {println!("Champion data couldn't be loaded."); return;}           
+            Err(_) => {
+                println!("Champion data couldn't be loaded."); 
+                return;
+            }           
         };
 
         let play_rate_data = match self.get_play_rate() {
             Ok(data) => data,
-            Err(_) => {println!("Play rate data couldn't be loaded, lane filtering will be unavailable."); PublicApiPlayRates::default()}           
+            Err(_) => {
+                println!("Play rate data couldn't be loaded, lane filtering will be unavailable."); 
+                PublicApiPlayRates::default()
+            }           
         };
 
         let mut parsed_champions: Vec<Champion> = vec![];
@@ -223,8 +237,9 @@ impl model::API {
         for player in players.iter(){
 
             let player_champion:Champion = self.champions.iter()
-            .filter(|champion|{champion.name == player.championName}).cloned().collect::<Vec<Champion>>()
-            .get(0).unwrap_or(&Champion::Default(&self.game_type)).clone();
+                .find(|champion|{champion.name == player.championName})
+                .unwrap_or(&Champion::Default(&self.game_type))
+                .clone();
 
             parsed_players.push(Player{
                 name: player.summonerName.clone(),
@@ -254,40 +269,65 @@ impl model::API {
                 "TurretKilled" | "InhibKilled" => self.parse_structure(event),
                 "DragonKill" | "HeraldKill" | "BaronKill" => self.parse_objective(event),
                 "Multikill"=> self.parse_multikill(event),
-                "FirstBlood"=> self.parse_firstblood(event, events.clone()),
+                "FirstBlood"=> self.parse_firstblood(event, events.clone()), 
                 _ => ()
             }
         }
     }
 
-    pub fn parse_structure(&mut self, event: &ClientApiEvent){
+    pub fn get_event_aggressor(&self, event: &ClientApiEvent) -> Option<&Player>{
+        match &event.KillerName {
+            Some(killer) => self.players.iter().find(|player: &&Player| &player.name == killer),
+            _ => None
+        }        
+    }
 
-        let structure = match event.TurretKilled.is_some() {
-            true => event.TurretKilled.clone().unwrap(),
-            _ => event.InhibKilled.clone().unwrap()
+    pub fn get_event_target_player(&self, event: &ClientApiEvent) -> Option<&Player>{
+        let event_target: &String = match (&event.VictimName, &event.Recipient) {
+            (Some(target), None) | (None, Some(target)) => target,
+            (Some(target1), Some(target2)) => {
+                if target1 != target2 {
+                    println!("Unable to determine event target, event has both VictimName and Recipient fields which don't match eachother.");
+                    return None;
+                }
+
+                target1
+            },
+            _ => {return None;}
         };
 
-        // If the turret killed is an Azir turret don't parse it, it doesn't have any identifiable information with which we can place it on the map
-        if structure == "Obelisk".to_string(){return;}
+        self.players.iter().find(|player: &&Player| &player.name == event_target)
+    }
+
+    pub fn parse_structure(&mut self, event: &ClientApiEvent){
+
+        let structure = match (event.TurretKilled.as_deref(), event.InhibKilled.as_deref()) {
+            (Some("Obelisk"), None) => {return;},
+            (Some(structure), None) | (None, Some(structure)) => structure,
+            _ => {
+                println!("Turret or inhibitor unspecified, cannot parse event.");
+                return;
+            }
+        };
 
         let structure_data:Vec<&str> = structure.split("_").collect();
 
-        let team = match structure_data[1] {
-            "T2" => Team::Red,
+        let team = match structure_data.get(1) {
+            Some(&"T2") => Team::Red,
             _ => Team::Blue
         };
 
-        let lane = match structure_data[2] {
-            "L" | "L1" => Lane::Top,
-            "C" | "C1" => Lane::Middle,
-            "R" | "R1" => Lane::Bottom,
+        let lane = match structure_data.get(2) {
+            Some(&"L") | Some(&"L1") => Lane::Top,
+            Some(&"C") | Some(&"C1") => Lane::Middle,
+            Some(&"R") | Some(&"R1") => Lane::Bottom,
             _ => Lane::None
         };
 
-        self.events.push(match structure_data[0] {
-            "Barracks" => Events::Inhibitor { team: team, lane: lane },
-            "Turret" =>{match structure_data[3] {
-                "01" | "02" if lane == Lane::Middle => Events::NexusTurret { team: team },
+        self.events.push(match structure_data.get(0) {
+            Some(&"Barracks") => Events::Inhibitor { team: team, lane: lane },
+            Some(&"Turret") =>{ match structure_data.get(0) {
+                Some(&"01") | Some(&"02") if lane == Lane::Middle => Events::NexusTurret { team: team },
                 _ => Events::Turret { team: team, lane: lane }
             }},
             _ => Events::Turret { team: team, lane: lane }
@@ -295,16 +335,24 @@ impl model::API {
     }
 
     pub fn parse_objective(&mut self, event: &ClientApiEvent){
-        let killer:Vec<&Player> = self.players.iter().filter(|player| player.name == event.KillerName.clone().unwrap()).collect();
-        let team: Team = killer.clone().get(0).expect("Killer not found").team;
-        let stolen: bool = match event.Stolen.clone().unwrap().as_str() {
-            "true" => true,
+        let killer = match self.get_event_aggressor(event) {
+            Some(player) => player,
+            _ => {
+                println!("Unable to determine event aggressor.");
+                return;
+            }
+        };
+
+        let team: Team = killer.team;
+
+        let stolen: bool = match event.Stolen.clone().as_deref() {
+            Some("True") => false,
             _ => false
         };
 
         self.events.push(match event.EventName.as_str() {
-            "DragonKill" => {match event.DragonType.clone().unwrap().as_str() {
-                "Elder" => Events::Elder { team: team, stolen: stolen},
+            "DragonKill" => {match event.DragonType.clone().as_deref(){
+                Some("Elder") => Events::Elder { team: team, stolen: stolen},
                 _ => Events::Dragon { team: team, stolen: stolen}
             }},
             "HeraldKill" => Events::Herald { team: team, stolen: stolen},
@@ -314,20 +362,41 @@ impl model::API {
     }
 
     pub fn parse_multikill(&mut self, event: &ClientApiEvent){
-        let killer:Vec<&Player> = self.players.iter().filter(|player| player.name == event.KillerName.clone().unwrap()).collect();
-        match event.KillStreak.unwrap() {
-            5 => self.events.push(Events::Penta { team: killer.get(0).unwrap().team, player: killer.get(0).unwrap().to_owned().clone() }),
+        let killer = match self.get_event_aggressor(event) {
+            Some(player) => player,
+            _ => {
+                println!("Unable to determine event perpetrator");
+                return;
+            }
+        };
+
+        match event.KillStreak {
+            Some(5) => self.events.push(
+                Events::Penta { 
+                    team: killer.team, 
+                    player: killer.clone() 
+                }
+            ),
             _ => ()
         }
     }
 
     pub fn parse_firstblood(&mut self, event: &ClientApiEvent , event_log: Vec<ClientApiEvent>){
 
-        let last_event_vec = event_log.iter().filter(|evnt| evnt.EventID == event.EventID-1).cloned().collect::<Vec<ClientApiEvent>>();
-        let last_event = last_event_vec.get(0).unwrap();
+        let last_event = match event_log.iter().find(|evnt| evnt.EventID == event.EventID - 1) {
+            Some(event) => event,
+            _ => {return;}
+        };
 
-        let player:Vec<&Player> = self.players.iter().filter(|player| player.name == last_event.VictimName.clone().unwrap()).collect();
-        self.events.push(Events::FirstBlood { team: player.get(0).unwrap().team.flip(), player: player.get(0).unwrap().to_owned().clone() });
+        match self.get_event_target_player(last_event) {
+            Some(victim) => self.events.push(
+                Events::FirstBlood { 
+                    team: victim.team.flip(), 
+                    player: victim.clone()
+                }
+            ),
+            _ => ()
+        };
 
     }
 }
