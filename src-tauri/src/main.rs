@@ -1,10 +1,10 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 mod lol_api;
 use lol_api::model::{*};
 use serde_json::json;
-use std::{fs::File, io::Read, env, sync::Mutex};
+use std::{env, sync::Mutex};
 use lazy_static::lazy_static;
 lazy_static! {
     static ref api: Mutex<API> = Mutex::new(API::new());

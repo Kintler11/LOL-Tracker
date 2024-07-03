@@ -1,13 +1,12 @@
 pub mod model;
 use std::{
     collections::HashMap,
-    time::Duration, fs::File, path::Path, env, fmt::format,
+    time::Duration, fs::File, path::Path,
 };
 use model::{*};
-use rand::seq::{SliceRandom, IteratorRandom};
+use rand::seq::IteratorRandom;
 
-use reqwest::{header::RETRY_AFTER, Certificate};
-use tauri::Event;
+use reqwest::Certificate;
 
 impl model::API {
     pub fn new() -> Self{
